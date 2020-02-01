@@ -23,7 +23,8 @@ import pandas as pd
 from tqdm import tqdm; tqdm.monitor_interval = 0  # noqa
 from transformers.tokenization_bert import whitespace_tokenize
 
-
+##############################################################################
+#https://www.kaggle.com/seesee/submit-full/data
 ##############################################################################
 class TFBertForNaturalQuestionAnswering(TFBertPreTrainedModel):
     def __init__(self, config, *inputs, **kwargs):
@@ -1314,8 +1315,8 @@ def main():
     parser = argparse.ArgumentParser(description='Train')
     # Required parameters
     parser.add_argument("--model_type", default="bert", type=str)
-    #parser.add_argument("--model_config",default="transformers_cache/bert_large_uncased_config.json", type=str)
-    #parser.add_argument("--checkpoint_dir", default="../input/nq-bert-uncased-68", type=str)
+    parser.add_argument("--model_config",default="transformers_cache/bert_large_uncased_config.json", type=str)
+    parser.add_argument("--checkpoint_dir", default="nq_bert_uncased_68", type=str)
     parser.add_argument("--vocab_txt", default="transformers_cache/bert_large_uncased_vocab.txt", type=str)
     # Other parameters
     parser.add_argument('--short_null_score_diff_threshold', type=float, default=0.0)
@@ -1344,12 +1345,12 @@ def main():
     # Set seed
     set_seed(args)
     # Set cased / uncased
-    # config_basename = os.path.basename(args.model_config)
-    # if config_basename.startswith('bert'):
-    #     do_lower_case = 'uncased' in config_basename
-    # elif config_basename.startswith('roberta'):
-    #     # https://github.com/huggingface/transformers/pull/1386/files
-    #     do_lower_case = False
+    config_basename = os.path.basename(args.model_config)
+    if config_basename.startswith('bert'):
+        do_lower_case = 'uncased' in config_basename
+    elif config_basename.startswith('roberta'):
+        # https://github.com/huggingface/transformers/pull/1386/files
+        do_lower_case = False
         ##
     # Set XLA
     # https://github.com/kamalkraj/ALBERT-TF2.0/blob/8d0cc211361e81a648bf846d8ec84225273db0e4/run_classifer.py#L136
@@ -1358,20 +1359,20 @@ def main():
     print("Training / evaluation parameters %s", args)
     args.model_type = args.model_type.lower()
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    #config = config_class.from_json_file(args.model_config)
-    config = config_class.from_pretrained('bert-base-cased')
-    tokenizer = tokenizer_class(args.vocab_txt, do_lower_case=False)
+    config = config_class.from_json_file(args.model_config)
+    #config = config_class.from_pretrained('bert-base-cased')
+    tokenizer = tokenizer_class(args.vocab_txt, do_lower_case=do_lower_case)
     #tokenizer = tokenizer_class.from_pretrained('bert-base-cased')
     tags = get_add_tokens(do_enumerate=args.do_enumerate)
     #num_added = tokenizer.add_tokens(tags, offset=1)
     num_added = tokenizer.add_tokens(tags)
     print(f"Added {num_added} tokens")
-    # print("Evaluate the following checkpoint: %s", args.checkpoint_dir)
-    # weights_fn = os.path.join(args.checkpoint_dir, 'weights.h5')
-    # model = model_class(config)
-    # model(model.dummy_inputs, training=False)
-    # model.load_weights(weights_fn)
-    model = model_class.from_pretrained('bert-base-cased')
+    print("Evaluate the following checkpoint:", args.checkpoint_dir)
+    weights_fn = os.path.join(args.checkpoint_dir, 'weights.h5')
+    model = model_class(config)
+    model(model.dummy_inputs, training=False)
+    model.load_weights(weights_fn)
+    #model = model_class.from_pretrained('bert-base-cased')
     result = submit(args, model, tokenizer)
     print("Result: {}".format(result))
 
